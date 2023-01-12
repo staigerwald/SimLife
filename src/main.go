@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
+	"os"
+	"os/exec"
+	"runtime"
 )
 
 const (
@@ -12,9 +15,21 @@ const (
 )
 
 type Universe [][]bool
+var clear map[string]func() //create a map for storing clear funcs
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
+	clear = make(map[string]func()) //Initialize it
+	clear["linux"] = func() {
+		cmd := exec.Command("clear") //Linux example, its tested
+		cmd.Stdout = os.Stdout
+		cmd.Run()
+	}
+	clear["windows"] = func() {
+		cmd := exec.Command("cmd", "/c", "cls") //Windows example, its tested
+		cmd.Stdout = os.Stdout
+		cmd.Run()
+	}
 }
 
 func (u Universe) Fillon25Percent() {
@@ -39,7 +54,7 @@ func (u Universe) Show() {
 		}
 		fmt.Printf("\n")
 	}
-	fmt.Print("\x0c")
+	CallClear()
 }
 func (u Universe) Alive(h, w int) bool {
 	for h >= height {
@@ -96,6 +111,14 @@ func NewUniverse() Universe {
 	}
 	return NewUniverse
 }
+func CallClear() {
+	value, ok := clear[runtime.GOOS] //runtime.GOOS -> linux, windows, darwin etc.
+	if ok { //if we defined a clear func for that platform:
+		value()  //we execute it
+	} else { //unsupported platform
+		panic("Your platform is unsupported! I can't clear terminal screen :(")
+	}
+}
 
 func main() {
 	NewUniverse, TempUniverse := NewUniverse(), NewUniverse()
@@ -105,7 +128,7 @@ func main() {
 	for {
 		Step(NewUniverse, TempUniverse)
 		NewUniverse.Show()
-		time.Sleep(time.Second / 8)
+		time.Sleep(time.Second / 200)
 		NewUniverse, TempUniverse = TempUniverse, NewUniverse
 	}
 }
